@@ -145,6 +145,20 @@ func (s *storageLvm) getLvmThinpoolName() string {
 	return "LXDThinPool"
 }
 
+func (s *storageLvm) getNumberOfStripes() (uint64, error) {
+	stripesString := s.pool.Config["volume.lvm.stripes"]
+
+	if stripesString != "" {
+		stripes, err := strconv.ParseUint(stripesString, 10, 32)
+
+		if err != nil {
+			return 0, err
+		}
+		return stripes, err
+	}
+	return 1, nil
+}
+
 func (s *storageLvm) usesThinpool() bool {
 	// Default is to use a thinpool.
 	if s.pool.Config["lvm.use_thinpool"] == "" {
@@ -1087,4 +1101,43 @@ func (s *storageLvm) copyVolumeThinpool(source string, target string, readOnly b
 	}
 
 	return nil
+}
+
+func getLVCreateSuffix(input string) (string, error) {
+	suffixLen := 0
+	for i, chr := range []byte(input) {
+		_, err := strconv.Atoi(string([]byte{chr}))
+		if err != nil {
+			suffixLen = len(input) - i
+			break
+		}
+	}
+
+	if suffixLen == len(input) {
+		return "", fmt.Errorf("Invalid value: %s", input)
+	}
+
+	suffix := input[len(input)-suffixLen:]
+	switch suffix {
+	case "", "B", " bytes":
+		suffix = "B"
+	case "KiB", "kB":
+		suffix = "K"
+	case "MiB", "MB":
+		suffix = "M"
+	case "GiB", "GB":
+		suffix = "G"
+	case "TiB", "TB":
+		suffix = "T"
+	case "PiB", "PB":
+		suffix = "P"
+	case "EiB", "EB":
+		suffix = "E"
+	default:
+		return "", fmt.Errorf("Invalid value: %s", input)
+	}
+	prefix := input[:len(input)-suffixLen+1]
+	lvCreateString := fmt.Sprintf("%s%s", prefix, suffix)
+
+	return lvCreateString, nil
 }
