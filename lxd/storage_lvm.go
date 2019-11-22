@@ -27,10 +27,15 @@ import (
 	"github.com/lxc/lxd/shared/units"
 )
 
+var lvmStripes = 1
+var lvmStripesSize = ""
+
 type storageLvm struct {
 	vgName       string
 	thinPoolName string
 	useThinpool  bool
+	stripes		 uint64
+	stripesSize  string
 	loopInfo     *os.File
 	storageShared
 }
@@ -329,6 +334,11 @@ func (s *storageLvm) StoragePoolCreate() error {
 	}
 
 	err = s.StoragePoolCheck()
+	if err != nil {
+		return err
+	}
+
+	s.stripes, err = s.getNumberOfStripes()
 	if err != nil {
 		return err
 	}

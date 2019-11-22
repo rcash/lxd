@@ -2211,6 +2211,15 @@ func patchStorageApiUpdateStorageConfigs(name string, d *Daemon) error {
 			if pool.Config["volume.block.filesystem"] == "ext4" {
 				pool.Config["volume.block.filesystem"] = ""
 			}
+
+			if pool.Config["volume.lvm.stripes"] != "" {
+				pool.Config["volume.lvm.stripes"] = ""
+			}
+
+			if pool.Config["volume.lvm.stripes.size"] != "" {
+				pool.Config["volume.lvm.stripes.size"] = ""
+			}
+
 		case "zfs":
 			// Unset default values.
 			if !shared.IsTrue(pool.Config["volume.zfs.use_refquota"]) {
@@ -2270,6 +2279,12 @@ func patchStorageApiUpdateStorageConfigs(name string, d *Daemon) error {
 				// Unset default values.
 				if volume.Config["block.mount_options"] == "discard" {
 					volume.Config["block.mount_options"] = ""
+				}
+				if volume.Config["lvm.stripes"] != "" {
+					volume.Config["lvm.stripes"] = ""
+				}
+				if volume.Config["lvm.stripes.size"] != "" {
+					volume.Config["lvm.stripes.size"] = ""
 				}
 			case "zfs":
 				// Unset default values.
