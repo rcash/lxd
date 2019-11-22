@@ -1137,7 +1137,6 @@ func getLVCreateSize(input string) (string, error) {
 	suffixLen := 0
 
 	logger.Infof("INPUT: %s", input)
-
 	for i, chr := range []byte(input) {
 		_, err := strconv.Atoi(string([]byte{chr}))
 		if err != nil {
@@ -1169,6 +1168,7 @@ func getLVCreateSize(input string) (string, error) {
 	default:
 		return "", fmt.Errorf("Invalid value: %s", input)
 	}
+
 	prefix := input[:len(input)-suffixLen]
 	lvCreateString := fmt.Sprintf("%s%s", prefix, suffix)
 	logger.Infof("LVCREATE LVCREATESTRING in GETLVCREATESIZE: %s", lvCreateString)

@@ -27,6 +27,9 @@ import (
 	"github.com/lxc/lxd/shared/units"
 )
 
+var lvmStripes = 1
+var lvmStripesSize = ""
+
 type storageLvm struct {
 	vgName       string
 	thinPoolName string
@@ -339,13 +342,8 @@ func (s *storageLvm) StoragePoolCreate() error {
 	if err != nil {
 		return err
 	}
-
+	
 	s.stripesSize = s.getSizeOfStripes()
-
-	logger.Infof("S.STRIPES after setting in STORAGEPOOLCREATE: %d \n", s.stripes)
-	logger.Infof("S.STRIPESSIZE after setting in STORAGEPOOLCREATE: %s \n", s.stripesSize)
-
-
 	// Deregister cleanup.
 	tryUndo = false
 
