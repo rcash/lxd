@@ -339,6 +339,7 @@ func (s *storageLvm) StoragePoolCreate() error {
 	if err != nil {
 		return err
 	}
+
 	s.stripesSize = s.getSizeOfStripes()
 	// Deregister cleanup.
 	tryUndo = false
@@ -526,8 +527,6 @@ func (s *storageLvm) StoragePoolVolumeCreate() error {
 	stripesSize := s.getSizeOfStripes()
 
 	err = lvmCreateLv("default", poolName, thinPoolName, volumeLvmName, lvFsType, lvSize, volumeType, s.useThinpool, stripes, stripesSize)
-	logger.Infof("S.STRIPES in STORAGEPOOLVOLUMECREATE: %d", stripes)
-	logger.Infof("S.STRIPESSIZE in STORAGEPOOLVOLUMECREATE: %s", stripesSize)
 	if err != nil {
 		return fmt.Errorf("Error Creating LVM LV for new image: %v", err)
 	}
