@@ -520,7 +520,7 @@ func (s *storageLvm) StoragePoolVolumeCreate() error {
 		}
 	}
 
-	err = lvmCreateLv("default", poolName, thinPoolName, volumeLvmName, lvFsType, lvSize, volumeType, s.useThinpool)
+	err = lvmCreateLv("default", poolName, thinPoolName, volumeLvmName, lvFsType, lvSize, volumeType, s.useThinpool, s.stripes, s.stripesSize)
 	if err != nil {
 		return fmt.Errorf("Error Creating LVM LV for new image: %v", err)
 	}
@@ -962,7 +962,7 @@ func (s *storageLvm) ContainerCreate(container instance.Instance) error {
 		}
 	}
 
-	err = lvmCreateLv(container.Project(), poolName, thinPoolName, containerLvmName, lvFsType, lvSize, storagePoolVolumeAPIEndpointContainers, s.useThinpool)
+	err = lvmCreateLv(container.Project(), poolName, thinPoolName, containerLvmName, lvFsType, lvSize, storagePoolVolumeAPIEndpointContainers, s.useThinpool, s.stripes, s.stripesSize)
 	if err != nil {
 		return err
 	}
@@ -1846,8 +1846,7 @@ func (s *storageLvm) doContainerBackupLoad(projectName, containerName string, pr
 	}
 
 	if !snapshot {
-		err = lvmCreateLv(projectName, poolName, thinPoolName, containerLvmName, lvFsType, lvSize,
-			storagePoolVolumeAPIEndpointContainers, s.useThinpool)
+		err = lvmCreateLv(projectName, poolName, thinPoolName, containerLvmName, lvFsType, lvSize, storagePoolVolumeAPIEndpointContainers, s.useThinpool, s.stripes, s.stripesSize)
 	} else {
 		cname, _, _ := shared.InstanceGetParentAndSnapshotName(containerName)
 		_, err = s.createSnapshotLV(projectName, poolName, cname, storagePoolVolumeAPIEndpointContainers,
@@ -1932,7 +1931,7 @@ func (s *storageLvm) ImageCreate(fingerprint string, tracker *ioprogress.Progres
 			return err
 		}
 
-		err = lvmCreateLv("default", poolName, thinPoolName, fingerprint, lvFsType, lvSize, storagePoolVolumeAPIEndpointImages, true)
+		err = lvmCreateLv("default", poolName, thinPoolName, fingerprint, lvFsType, lvSize, storagePoolVolumeAPIEndpointImages, true, s.stripes, s.stripesSize)
 		if err != nil {
 			return fmt.Errorf("Error Creating LVM LV for new image: %v", err)
 		}
