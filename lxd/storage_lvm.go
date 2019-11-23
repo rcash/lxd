@@ -340,6 +340,8 @@ func (s *storageLvm) StoragePoolCreate() error {
 		return err
 	}
 
+	s.stripesSize = s.pool.Config["volume.lvm.stripes.size"]
+
 	// Deregister cleanup.
 	tryUndo = false
 
