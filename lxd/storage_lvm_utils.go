@@ -870,7 +870,7 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 		return err
 	}
 
-	stripeSize = units.GetByteSizeString(stripeSizeUint, 32)
+	stripeSize = units.GetByteSizeString(stripeSizeUint, 0)
 	logger.Infof("STRIPESIZE AFTER GETBYTESIZESTRING IN LVCREATE: %s", stripeSize)
 
 	stripesSizeString, err := getLVCreateSize(stripeSize)
