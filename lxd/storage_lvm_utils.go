@@ -848,6 +848,7 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 	var output string
 	var err error
 
+	logger.Infof("STRIPESIZE AT BEGINNING: %s", stripeSize)
 	// Round the size to closest 512 bytes
 	lvSizeInt, err := units.ParseByteSizeString(lvSize)
 	if err != nil {
@@ -859,11 +860,14 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 
 	numStripesString := fmt.Sprintf("%d", numStripes)
 	stripeSizeUint, err := units.ParseByteSizeString(stripeSize)
+	logger.Infof("STRIPESIZEUINT: %d", stripeSizeUint)
+
 	if err != nil {
 		return err
 	}
 
 	stripeSize = units.GetByteSizeString(stripeSizeUint, 32)
+	logger.Infof("STRIPESIZE AFTER GETBYTESIZESTRING: %s", stripeSize)
 
 	stripesSizeString, err := getLVCreateSize(stripeSize)
 	if err != nil {
