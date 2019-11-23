@@ -159,6 +159,10 @@ func (s *storageLvm) getNumberOfStripes() (uint64, error) {
 	return 1, nil
 }
 
+func (s *storageLvm) getSizeOfStripes() (string) {
+	return s.pool.Config["volume.lvm.stripes.size"]
+}
+
 func (s *storageLvm) usesThinpool() bool {
 	// Default is to use a thinpool.
 	if s.pool.Config["lvm.use_thinpool"] == "" {
@@ -1167,8 +1171,6 @@ func getLVCreateSize(input string) (string, error) {
 	}
 	prefix := input[:len(input)-suffixLen]
 	lvCreateString := fmt.Sprintf("%s%s", prefix, suffix)
-	logger.Infof("LVCREATE PREFIX in GETLVCREATESIZE: %s", prefix)
-	logger.Infof("LVCREATE SUFFIX in GETLVCREATESIZE: %s", suffix)
 	logger.Infof("LVCREATE LVCREATESTRING in GETLVCREATESIZE: %s", lvCreateString)
 
 	return lvCreateString, nil
