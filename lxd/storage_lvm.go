@@ -342,6 +342,10 @@ func (s *storageLvm) StoragePoolCreate() error {
 
 	s.stripesSize = s.pool.Config["volume.lvm.stripes.size"]
 
+	logger.Infof("S.STRIPES after setting in STORAGEPOOLCREATE: %d \n", s.stripes)
+	logger.Infof("S.STRIPESSIZE after setting in STORAGEPOOLCREATE: %s \n", s.stripesSize)
+
+
 	// Deregister cleanup.
 	tryUndo = false
 
@@ -500,6 +504,10 @@ func (s *storageLvm) StoragePoolUmount() (bool, error) {
 func (s *storageLvm) StoragePoolVolumeCreate() error {
 	logger.Infof("Creating LVM storage volume \"%s\" on storage pool \"%s\"", s.volume.Name, s.pool.Name)
 	tryUndo := true
+	logger.Infof("CONFIG STRIPES before setting in STORAGEVOLUMEPOOLCREATE: %s", s.pool.Config["volume.lvm.stripes"])
+	logger.Infof("CONFIG STRIPESSIZE before setting in STORAGEVOLUMEPOOLCREATE: %s", s.pool.Config["volume.lvm.stripes.size"])
+	logger.Infof("S.STRIPES before setting in STORAGEVOLUMEPOOLCREATE: %s", s.stripes)
+	logger.Infof("S.STRIPESSIZE before setting in STORAGEVOLUMEPOOLCREATE: %s", s.stripesSize)
 
 	volumeLvmName := containerNameToLVName(s.volume.Name)
 	poolName := s.getOnDiskPoolName()
@@ -521,6 +529,11 @@ func (s *storageLvm) StoragePoolVolumeCreate() error {
 			return err
 		}
 	}
+
+	logger.Infof("CONFIG STRIPES after setting in STORAGEVOLUMEPOOLCREATE: %d", s.pool.Config["volume.lvm.stripes"])
+	logger.Infof("CONFIG STRIPESSIZE after setting in STORAGEVOLUMEPOOLCREATE: %s", s.pool.Config["volume.lvm.stripes.size"])
+	logger.Infof("S.STRIPES after setting in STORAGEVOLUMEPOOLCREATE: %d", s.stripes)
+	logger.Infof("S.STRIPESSIZE after setting in STORAGEVOLUMEPOOLCREATE: %s", s.stripesSize)
 
 	err = lvmCreateLv("default", poolName, thinPoolName, volumeLvmName, lvFsType, lvSize, volumeType, s.useThinpool, s.stripes, s.stripesSize)
 	if err != nil {
