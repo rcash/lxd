@@ -844,7 +844,7 @@ func getPrefixedLvName(projectName, volumeType string, lvmVolume string) string 
 }
 
 func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string, lvFsType string, lvSize string,
-	volumeType string, makeThinLv bool, numStripes uint32, stripeSize string) error {
+	volumeType string, makeThinLv bool, numStripes uint64, stripeSize string) error {
 	var output string
 	var err error
 
@@ -1127,6 +1127,9 @@ func (s *storageLvm) copyVolumeThinpool(source string, target string, readOnly b
 
 func getLVCreateSize(input string) (string, error) {
 	suffixLen := 0
+
+	logger.Infof("INPUT: %s", input)
+
 	for i, chr := range []byte(input) {
 		_, err := strconv.Atoi(string([]byte{chr}))
 		if err != nil {
@@ -1141,7 +1144,7 @@ func getLVCreateSize(input string) (string, error) {
 
 	suffix := input[len(input)-suffixLen:]
 	switch suffix {
-	case "", "B", " bytes":
+	case "", "B", "bytes":
 		suffix = "B"
 	case "KiB", "kB":
 		suffix = "K"
@@ -1158,8 +1161,11 @@ func getLVCreateSize(input string) (string, error) {
 	default:
 		return "", fmt.Errorf("Invalid value: %s", input)
 	}
-	prefix := input[:len(input)-suffixLen+1]
+	prefix := input[:len(input)-suffixLen]
 	lvCreateString := fmt.Sprintf("%s%s", prefix, suffix)
+	logger.Infof("LVCREATE PREFIX: %s", prefix)
+	logger.Infof("LVCREATE SUFFIX: %s", suffix)
+	logger.Infof("LVCREATE LVCREATESTRING: %s", lvCreateString)
 
 	return lvCreateString, nil
 }
