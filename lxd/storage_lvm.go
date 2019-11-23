@@ -529,7 +529,6 @@ func (s *storageLvm) StoragePoolVolumeCreate() error {
 	err = lvmCreateLv("default", poolName, thinPoolName, volumeLvmName, lvFsType, lvSize, volumeType, s.useThinpool, stripes, stripesSize)
 	logger.Infof("S.STRIPES in STORAGEPOOLVOLUMECREATE: %d", stripes)
 	logger.Infof("S.STRIPESSIZE in STORAGEPOOLVOLUMECREATE: %s", stripesSize)
-
 	if err != nil {
 		return fmt.Errorf("Error Creating LVM LV for new image: %v", err)
 	}
@@ -1861,7 +1860,6 @@ func (s *storageLvm) doContainerBackupLoad(projectName, containerName string, pr
 	}
 
 	if !snapshot {
-
 		stripes, err := s.getNumberOfStripes()
 		if err != nil {
 			return "", err
