@@ -27,9 +27,6 @@ import (
 	"github.com/lxc/lxd/shared/units"
 )
 
-var lvmStripes = 1
-var lvmStripesSize = ""
-
 type storageLvm struct {
 	vgName       string
 	thinPoolName string
