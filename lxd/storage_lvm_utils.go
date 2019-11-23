@@ -843,7 +843,8 @@ func getPrefixedLvName(projectName, volumeType string, lvmVolume string) string 
 	return fmt.Sprintf("%s_%s", volumeType, lvmVolume)
 }
 
-func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string, lvFsType string, lvSize string, volumeType string, makeThinLv bool) error {
+func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string, lvFsType string, lvSize string,
+	volumeType string, makeThinLv bool, numStripes uint32, stripeSize string) error {
 	var output string
 	var err error
 
@@ -856,12 +857,33 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 	lvSizeInt = int64(lvSizeInt/512) * 512
 	lvSizeString := units.GetByteSizeString(lvSizeInt, 0)
 
+	numStripesString := fmt.Sprintf("%d", numStripes)
+	stripeSizeUint, err := units.ParseByteSizeString(stripeSize)
+	if err != nil {
+		return err
+	}
+
+	stripeSize = units.GetByteSizeString(stripeSizeUint, 32)
+
+	stripesSizeString, err := getLVCreateSize(stripeSize)
+	if err != nil {
+		return err
+	}
+
 	lvmPoolVolumeName := getPrefixedLvName(projectName, volumeType, lvName)
 	if makeThinLv {
 		targetVg := fmt.Sprintf("%s/%s", vgName, thinPoolName)
-		_, err = shared.TryRunCommand("lvcreate", "-Wy", "--yes", "--thin", "-n", lvmPoolVolumeName, "--virtualsize", lvSizeString, targetVg)
+		if numStripes > 1 {
+			_, err = shared.TryRunCommand("lvcreate", "-i", numStripesString, "-I", stripesSizeString, "-Wy", "--yes", "--thin", "-n", lvmPoolVolumeName, "--virtualsize", lvSizeString, targetVg)
+		} else {
+			_, err = shared.TryRunCommand("lvcreate", "-Wy", "--yes", "--thin", "-n", lvmPoolVolumeName, "--virtualsize", lvSizeString, targetVg)
+		}
 	} else {
-		_, err = shared.TryRunCommand("lvcreate", "-Wy", "--yes", "-n", lvmPoolVolumeName, "--size", lvSizeString, vgName)
+		if numStripes > 1 {
+			_, err = shared.TryRunCommand("lvcreate", "-i", numStripesString, "-I", stripesSizeString, "-Wy", "--yes", "-n", lvmPoolVolumeName, "--size", lvSizeString, vgName)
+		} else {
+			_, err = shared.TryRunCommand("lvcreate", "-Wy", "--yes", "-n", lvmPoolVolumeName, "--size", lvSizeString, vgName)
+		}
 	}
 	if err != nil {
 		logger.Errorf("Could not create LV \"%s\": %v", lvmPoolVolumeName, err)
@@ -1103,7 +1125,7 @@ func (s *storageLvm) copyVolumeThinpool(source string, target string, readOnly b
 	return nil
 }
 
-func getLVCreateSuffix(input string) (string, error) {
+func getLVCreateSize(input string) (string, error) {
 	suffixLen := 0
 	for i, chr := range []byte(input) {
 		_, err := strconv.Atoi(string([]byte{chr}))
