@@ -339,7 +339,6 @@ func (s *storageLvm) StoragePoolCreate() error {
 	if err != nil {
 		return err
 	}
-	
 	s.stripesSize = s.getSizeOfStripes()
 	// Deregister cleanup.
 	tryUndo = false

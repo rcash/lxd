@@ -852,6 +852,7 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 	var output string
 	var err error
 
+	logger.Infof("STRIPESIZE AT BEGINNING: %s", stripeSize)
 	// Round the size to closest 512 bytes
 	lvSizeInt, err := units.ParseByteSizeString(lvSize)
 	if err != nil {
@@ -863,9 +864,12 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 
 	numStripesString := fmt.Sprintf("%d", numStripes)
 	stripeSizeUint, err := units.ParseByteSizeString(stripeSize)
+	logger.Infof("STRIPESIZEUINT: %d", stripeSizeUint)
+
 	if err != nil {
 		return err
 	}
+
 
 	stripeSize = units.GetByteSizeString(stripeSizeUint, 0)
 	logger.Infof("STRIPESIZE AFTER GETBYTESIZESTRING IN LVCREATE: %s", stripeSize)
@@ -1134,10 +1138,7 @@ func getLVCreateSize(input string) (string, error) {
 	suffixLen := 0
 
 	logger.Infof("INPUT: %s", input)
-<<<<<<< HEAD
-=======
 
->>>>>>> bug fixes
 	for i, chr := range []byte(input) {
 		_, err := strconv.Atoi(string([]byte{chr}))
 		if err != nil {
@@ -1169,18 +1170,8 @@ func getLVCreateSize(input string) (string, error) {
 	default:
 		return "", fmt.Errorf("Invalid value: %s", input)
 	}
-<<<<<<< HEAD
-
 	prefix := input[:len(input)-suffixLen]
 	lvCreateString := fmt.Sprintf("%s%s", prefix, suffix)
-	logger.Infof("LVCREATE LVCREATESTRING in GETLVCREATESIZE: %s", lvCreateString)
-=======
-	prefix := input[:len(input)-suffixLen]
-	lvCreateString := fmt.Sprintf("%s%s", prefix, suffix)
-	logger.Infof("LVCREATE PREFIX: %s", prefix)
-	logger.Infof("LVCREATE SUFFIX: %s", suffix)
-	logger.Infof("LVCREATE LVCREATESTRING: %s", lvCreateString)
->>>>>>> bug fixes
 
 	return lvCreateString, nil
 }
