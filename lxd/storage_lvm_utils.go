@@ -847,6 +847,7 @@ func getPrefixedLvName(projectName, volumeType string, lvmVolume string) string 
 	return fmt.Sprintf("%s_%s", volumeType, lvmVolume)
 }
 
+
 func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string, lvFsType string, lvSize string,
 	volumeType string, makeThinLv bool, numStripes uint64, stripeSize string) error {
 	var output string
@@ -879,13 +880,11 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 	}
 
 	lvmPoolVolumeName := getPrefixedLvName(projectName, volumeType, lvName)
+	//numStripes and stripesSize should only be used if makeThinLv is false. If it is true, thin volumes will inherit
+	//striping properites from their parent pool's properites
 	if makeThinLv {
 		targetVg := fmt.Sprintf("%s/%s", vgName, thinPoolName)
-		if numStripes > 1 {
-			_, err = shared.TryRunCommand("lvcreate", "-i", numStripesString, "-I", stripesSizeString, "-Wy", "--yes", "--thin", "-n", lvmPoolVolumeName, "--virtualsize", lvSizeString, targetVg)
-		} else {
-			_, err = shared.TryRunCommand("lvcreate", "-Wy", "--yes", "--thin", "-n", lvmPoolVolumeName, "--virtualsize", lvSizeString, targetVg)
-		}
+		_, err = shared.TryRunCommand("lvcreate", "-Wy", "--yes", "--thin", "-n", lvmPoolVolumeName, "--virtualsize", lvSizeString, targetVg)
 	} else {
 		if numStripes > 1 {
 			_, err = shared.TryRunCommand("lvcreate", "-i", numStripesString, "-I", stripesSizeString, "-Wy", "--yes", "-n", lvmPoolVolumeName, "--size", lvSizeString, vgName)
@@ -909,7 +908,8 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 	return nil
 }
 
-func lvmCreateThinpool(s *state.State, sTypeVersion string, vgName string, thinPoolName string, lvFsType string) error {
+func lvmCreateThinpool(s *state.State, sTypeVersion string, vgName string, thinPoolName string, lvFsType string,
+	numStripes uint64, stripesSize string) error {
 	exists, err := storageLVMThinpoolExists(vgName, thinPoolName)
 	if err != nil {
 		return err
@@ -919,7 +919,19 @@ func lvmCreateThinpool(s *state.State, sTypeVersion string, vgName string, thinP
 		return nil
 	}
 
-	err = createDefaultThinPool(sTypeVersion, vgName, thinPoolName, lvFsType)
+	stripesSizeUint, err := units.ParseByteSizeString(stripesSize)
+	if err != nil {
+		return err
+	}
+	stripesSize = units.GetByteSizeString(stripesSizeUint, 0)
+	stripesSizeLVString, err := getLVCreateSize(stripesSize)
+	if err != nil {
+		return nil
+	}
+
+	numStripesString := fmt.Sprintf("%d", numStripes)
+
+	err = createDefaultThinPool(sTypeVersion, vgName, thinPoolName, lvFsType, numStripesString, stripesSizeLVString)
 	if err != nil {
 		return err
 	}
@@ -933,28 +945,54 @@ func lvmCreateThinpool(s *state.State, sTypeVersion string, vgName string, thinP
 	return nil
 }
 
-func createDefaultThinPool(sTypeVersion string, vgName string, thinPoolName string, lvFsType string) error {
+func createDefaultThinPool(sTypeVersion string, vgName string, thinPoolName string, lvFsType string, numStripes string,
+	stripesSize string) error {
 	isRecent, err := lvmVersionIsAtLeast(sTypeVersion, "2.02.99")
 	if err != nil {
 		return fmt.Errorf("Error checking LVM version: %s", err)
 	}
 
+	numStripesUint, err := strconv.ParseUint(numStripes, 10, 0)
+	if err != nil {
+		return fmt.Errorf("Error creating striped thinpool: %s", err)
+	}
+
 	// Create the thin pool
 	lvmThinPool := fmt.Sprintf("%s/%s", vgName, thinPoolName)
 	if isRecent {
-		_, err = shared.TryRunCommand(
-			"lvcreate",
-			"-Wy", "--yes",
-			"--poolmetadatasize", "1G",
-			"-l", "100%FREE",
-			"--thinpool", lvmThinPool)
+		if numStripesUint > 1 {
+			_, err = shared.TryRunCommand(
+				"lvcreate",
+				"-Wy", "--yes",
+				"--poolmetadatasize", "1G",
+				"-l", "100%FREE", "-i",
+				numStripes, "-I", stripesSize,
+				"--thinpool", lvmThinPool)
+		} else {
+			_, err = shared.TryRunCommand(
+				"lvcreate",
+				"-Wy", "--yes",
+				"--poolmetadatasize", "1G",
+				"-l", "100%FREE",
+				"--thinpool", lvmThinPool)
+		}
 	} else {
-		_, err = shared.TryRunCommand(
-			"lvcreate",
-			"-Wy", "--yes",
-			"--poolmetadatasize", "1G",
-			"-L", "1G",
-			"--thinpool", lvmThinPool)
+		if numStripesUint > 1 {
+			_, err = shared.TryRunCommand(
+				"lvcreate",
+				"-Wy", "--yes",
+				"--poolmetadatasize", "1G",
+				"-L", "1G", "-i",
+				numStripes, "-I", stripesSize,
+				"--thinpool", lvmThinPool)
+		} else {
+			_, err = shared.TryRunCommand(
+				"lvcreate",
+				"-Wy", "--yes",
+				"--poolmetadatasize", "1G",
+				"-L", "1G",
+				"--thinpool", lvmThinPool)
+		}
 	}
 
 	if err != nil {
