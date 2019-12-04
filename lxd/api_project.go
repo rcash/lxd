@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/lxc/lxd/shared/units"
 	"io/ioutil"
 	"net/http"
 	"strconv"
