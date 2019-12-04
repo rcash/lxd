@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/lxc/lxd/shared/units"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -206,6 +208,7 @@ func projectGet(d *Daemon, r *http.Request) response.Response {
 		project.Description,
 		project.Config["features.images"],
 		project.Config["features.profiles"],
+		project.Config["limits.containers"],
 	}
 
 	return response.SyncResponseETag(true, project, etag)
@@ -235,6 +238,7 @@ func projectPut(d *Daemon, r *http.Request) response.Response {
 		project.Description,
 		project.Config["features.images"],
 		project.Config["features.profiles"],
+		project.Config["limits.containers"],
 	}
 	err = util.EtagCheck(r, etag)
 	if err != nil {
@@ -276,6 +280,7 @@ func projectPatch(d *Daemon, r *http.Request) response.Response {
 		project.Description,
 		project.Config["features.images"],
 		project.Config["features.profiles"],
+		project.Config["limits.containers"],
 	}
 	err = util.EtagCheck(r, etag)
 	if err != nil {
@@ -316,22 +321,34 @@ func projectPatch(d *Daemon, r *http.Request) response.Response {
 		req.Config["features.images"] = project.Config["features.profiles"]
 	}
 
+	_, err = reqRaw.GetString("limits.containers")
+	if err != nil {
+		req.Config["limits.containers"] = project.Config["limits.containers"]
+	}
+
 	return projectChange(d, project, req)
 }
-
 // Common logic between PUT and PATCH.
 func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response.Response {
 	// Flag indicating if any feature has changed.
 	featuresChanged := req.Config["features.images"] != project.Config["features.images"] || req.Config["features.profiles"] != project.Config["features.profiles"]
+	// Flag indicating if any limit has changed.
+	limitsChanged := req.Config["limits.containers"] != project.Config["limits.containers"]
 
 	// Sanity checks
 	if project.Name == "default" && featuresChanged {
 		return response.BadRequest(fmt.Errorf("You can't change the features of the default project"))
 	}
 
+	if project.Name == "default" && limitsChanged {
+		return response.BadRequest(fmt.Errorf("You can't change the limits of the default project"))
+	}
+
 	if !projectIsEmpty(project) && featuresChanged {
 		return response.BadRequest(fmt.Errorf("Features can only be changed on empty projects"))
 	}
+
+	//TODO: wait for response aabout applying changes to limits on non empty projects
 
 	// Validate the configuration
 	err := projectValidateConfig(req.Config)
@@ -495,9 +512,19 @@ func projectIsEmpty(project *api.Project) bool {
 var projectConfigKeys = map[string]func(value string) error{
 	"features.profiles": shared.IsBool,
 	"features.images":   shared.IsBool,
+	"limits.containers":	 shared.IsAny,
 }
 
 func projectValidateConfig(config map[string]string) error {
+
+	v, ok := config["limits.containers"]
+	if ok && v != "" {
+		_, err := strconv.ParseUint(v, 10, 0)
+		if err != nil {
+			return err
+		}
+	}
+
 	for k, v := range config {
 		key := k
 
