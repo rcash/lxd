@@ -511,7 +511,7 @@ func projectIsEmpty(project *api.Project) bool {
 var projectConfigKeys = map[string]func(value string) error{
 	"features.profiles": shared.IsBool,
 	"features.images":   shared.IsBool,
-	"limits.containers":	 shared.IsAny,
+	"limits.containers": shared.IsAny,
 }
 
 func projectValidateConfig(config map[string]string) error {
