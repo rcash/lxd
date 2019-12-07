@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/dustinkirkland/golang-petname"
@@ -38,6 +39,15 @@ import (
 func createFromImage(d *Daemon, project string, req *api.InstancesPost) response.Response {
 	var hash string
 	var err error
+
+	lessContainersThanLimit, err := containersLessThanLimit(d, project)
+
+	if err != nil {
+		return response.SmartError(err)
+	}
+	if !lessContainersThanLimit {
+		logger.Debugf("container create failed, limit of containers for project reached")
+	}
 
 	if req.Source.Fingerprint != "" {
 		hash = req.Source.Fingerprint
@@ -179,6 +189,15 @@ func createFromNone(d *Daemon, project string, req *api.InstancesPost) response.
 		Profiles:    req.Profiles,
 	}
 
+	lessContainersThanLimit, err := containersLessThanLimit(d, project)
+
+	if err != nil {
+		return response.SmartError(err)
+	}
+	if !lessContainersThanLimit {
+		logger.Debugf("container create failed, limit of containers for project reached")
+	}
+
 	if req.Architecture != "" {
 		architecture, err := osarch.ArchitectureId(req.Architecture)
 		if err != nil {
@@ -243,6 +262,15 @@ func createFromMigration(d *Daemon, project string, req *api.InstancesPost) resp
 		Name:         req.Name,
 		Profiles:     req.Profiles,
 		Stateful:     req.Stateful,
+	}
+
+	lessContainersThanLimit, err := containersLessThanLimit(d, project)
+
+	if err != nil {
+		return response.SmartError(err)
+	}
+	if !lessContainersThanLimit {
+		logger.Debugf("container create failed, limit of containers for project reached")
 	}
 
 	// Early profile validation.
@@ -483,6 +511,15 @@ func createFromCopy(d *Daemon, project string, req *api.InstancesPost) response.
 		return response.BadRequest(fmt.Errorf("must specify a source container"))
 	}
 
+	lessContainersThanLimit, err := containersLessThanLimit(d, project)
+
+	if err != nil {
+		return response.SmartError(err)
+	}
+	if !lessContainersThanLimit {
+		logger.Debugf("container create failed, limit of containers for project reached")
+	}
+
 	sourceProject := req.Source.Project
 	if sourceProject == "" {
 		sourceProject = project
@@ -647,6 +684,15 @@ func createFromCopy(d *Daemon, project string, req *api.InstancesPost) response.
 }
 
 func createFromBackup(d *Daemon, project string, data io.Reader, pool string) response.Response {
+	lessContainersThanLimit, err := containersLessThanLimit(d, project)
+
+	if err != nil {
+		return response.SmartError(err)
+	}
+	if !lessContainersThanLimit {
+		logger.Debugf("container create failed, limit of containers for project reached")
+	}
+
 	// Create temporary file to store uploaded backup data.
 	backupFile, err := ioutil.TempFile("", "lxd_backup_")
 	if err != nil {
@@ -823,6 +869,16 @@ func containersPost(d *Daemon, r *http.Request) response.Response {
 		return response.BadRequest(err)
 	}
 
+	lessContainersThanLimit, err := containersLessThanLimit(d, project)
+
+	if err != nil {
+		return response.SmartError(err)
+	}
+	if !lessContainersThanLimit {
+		logger.Debugf("container create failed, limit of containers for project reached")
+	}
+
+
 	targetNode := queryParam(r, "target")
 	if targetNode == "" {
 		// If no target node was specified, pick the node with the
@@ -992,6 +1048,38 @@ func containerFindStoragePool(d *Daemon, project string, req *api.InstancesPost)
 	}
 
 	return storagePool, storagePoolProfile, localRootDiskDeviceKey, localRootDiskDevice, nil
+}
+//Check container limit for project, if it exists
+func containersLessThanLimit(d *Daemon, project string) (bool, error) {
+	var names []string
+	err := d.cluster.Transaction(func(tx *db.ClusterTx) error {
+		var err error
+		names, err = tx.ContainerNames(project)
+		return err
+	})
+	if err != nil {
+		logger.Errorf("Failed to grab container names for current project")
+	}
+	numberOfContainers := uint64(len(names))
+
+	projectContainerLimit, err := ProjectGetContainerLimit(project)
+
+	if err != nil {
+		logger.Errorf("Failed to grab container limit")
+		return false, err
+	}
+
+	if projectContainerLimit != "" {
+		limit, err := strconv.ParseUint(projectContainerLimit, 10, 0)
+		if err != nil {
+			logger.Errorf("Failed to parse uint %s", err)
+			return false, err
+		}
+		return numberOfContainers < limit, nil
+	}
+
+	//project container limit not set therefore return true
+	return true, nil
 }
 
 func clusterCopyContainerInternal(d *Daemon, source instance.Instance, project string, req *api.InstancesPost) response.Response {

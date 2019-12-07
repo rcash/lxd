@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/lxc/lxd/shared/logger"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -347,12 +348,35 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 		return response.BadRequest(fmt.Errorf("Features can only be changed on empty projects"))
 	}
 
-	//TODO: wait for response aabout applying changes to limits on non empty projects
-
 	// Validate the configuration
 	err := projectValidateConfig(req.Config)
 	if err != nil {
 		return response.BadRequest(err)
+	}
+
+	if limitsChanged {
+		var names []string
+		err := d.cluster.Transaction(func(tx *db.ClusterTx) error {
+			var err error
+			names, err = tx.ContainerNames(project)
+			return err
+		})
+		if err != nil {
+			logger.Errorf("Failed to grab container names for current project")
+		}
+		numberOfContainers := uint64(len(names))
+
+		v, ok := req.Config["limits.containers"]
+		if ok && v != "" {
+			requestedContainerLimit, err := strconv.ParseUint(v, 10, 0)
+			if err != nil {
+				return response.SmartError(err)
+			}
+			if requestedContainerLimit < numberOfContainers {
+				return response.BadRequest(fmt.Errorf("You can't change the project container limit to less than" +
+					" the currennt number of containers"))
+			}
+		}
 	}
 
 	// Update the database entry
