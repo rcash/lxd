@@ -128,6 +128,17 @@ func (c *ClusterTx) ProjectHasImages(name string) (bool, error) {
 	return enabled, nil
 }
 
+func (c* ClusterTx) ProjectGetContainerLimit(name string) (string, error) {
+	project, err := c.ProjectGet(name)
+	if err != nil {
+		return false, errors.Wrap(err, "fetch project")
+	}
+
+	containerlimit := project.Config["limits.containers"]
+
+	return containerlimit, nil
+}
+
 // ProjectUpdate updates the project matching the given key parameters.
 func (c *ClusterTx) ProjectUpdate(name string, object api.ProjectPut) error {
 	stmt := c.stmt(projectUpdate)
