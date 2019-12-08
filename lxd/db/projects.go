@@ -135,7 +135,6 @@ func (c* ClusterTx) ProjectGetContainerLimit(name string) (string, error) {
 	}
 
 	containerlimit := project.Config["limits.containers"]
-	logger.Debugf("PROJECTGETCONTAINERLIMIT CONTAINER LIMIT: %d", containerlimit)
 
 	return containerlimit, nil
 }

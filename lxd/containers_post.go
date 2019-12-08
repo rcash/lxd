@@ -47,6 +47,7 @@ func createFromImage(d *Daemon, project string, req *api.InstancesPost) response
 	}
 	if !lessContainersThanLimit {
 		logger.Debugf("container create failed, limit of containers for project reached")
+		return response.BadRequest(fmt.Errorf("Container limit reached, unable to create new container"))
 	}
 
 	if req.Source.Fingerprint != "" {
@@ -196,6 +197,7 @@ func createFromNone(d *Daemon, project string, req *api.InstancesPost) response.
 	}
 	if !lessContainersThanLimit {
 		logger.Debugf("container create failed, limit of containers for project reached")
+		return response.BadRequest(fmt.Errorf("Container limit reached, unable to create new container"))
 	}
 
 	if req.Architecture != "" {
@@ -271,6 +273,7 @@ func createFromMigration(d *Daemon, project string, req *api.InstancesPost) resp
 	}
 	if !lessContainersThanLimit {
 		logger.Debugf("container create failed, limit of containers for project reached")
+		return response.BadRequest(fmt.Errorf("Container limit reached, unable to create new container"))
 	}
 
 	// Early profile validation.
@@ -518,6 +521,7 @@ func createFromCopy(d *Daemon, project string, req *api.InstancesPost) response.
 	}
 	if !lessContainersThanLimit {
 		logger.Debugf("container create failed, limit of containers for project reached")
+		return response.BadRequest(fmt.Errorf("Container limit reached, unable to create new container"))
 	}
 
 	sourceProject := req.Source.Project
@@ -691,6 +695,7 @@ func createFromBackup(d *Daemon, project string, data io.Reader, pool string) re
 	}
 	if !lessContainersThanLimit {
 		logger.Debugf("container create failed, limit of containers for project reached")
+		return response.BadRequest(fmt.Errorf("Container limit reached, unable to create new container"))
 	}
 
 	// Create temporary file to store uploaded backup data.
@@ -876,6 +881,7 @@ func containersPost(d *Daemon, r *http.Request) response.Response {
 	}
 	if !lessContainersThanLimit {
 		logger.Debugf("container create failed, limit of containers for project reached")
+		return response.BadRequest(fmt.Errorf("Container limit reached, unable to create new container"))
 	}
 
 
