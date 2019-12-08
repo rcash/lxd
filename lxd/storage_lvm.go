@@ -976,12 +976,6 @@ func (s *storageLvm) ContainerCreate(container instance.Instance) error {
 		}
 	}
 
-	stripes, err := s.getNumberOfStripes()
-	if err != nil {
-		return err
-	}
-	stripesSize := s.getSizeOfStripes()
-
 	err = lvmCreateLv(container.Project(), poolName, thinPoolName, containerLvmName, lvFsType, lvSize, storagePoolVolumeAPIEndpointContainers, s.useThinpool, stripes, stripesSize)
 	if err != nil {
 		return err
