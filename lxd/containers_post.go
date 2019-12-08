@@ -1082,6 +1082,8 @@ func containersLessThanLimit(d *Daemon, project string) (bool, error) {
 			logger.Errorf("Failed to parse uint %s", err)
 			return false, err
 		}
+
+		logger.Debugf("CONTAINERSLESSTHANLIMIT NUMBER OF CONTAINERS: %d	LIMIT: %d", numberOfContainers, limit)
 		return numberOfContainers < limit, nil
 	}
 

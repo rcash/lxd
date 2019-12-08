@@ -372,6 +372,7 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 			if err != nil {
 				return response.SmartError(err)
 			}
+			logger.Debugf("PROJECTCHANGE NUMBER OF CONTAINERS: %d	REQ CONTAINER LIMIT: %d", numberOfContainers, requestedContainerLimit)
 			if requestedContainerLimit < numberOfContainers {
 				return response.BadRequest(fmt.Errorf("You can't change the project container limit to less than" +
 					" the currennt number of containers"))
