@@ -358,7 +358,7 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 		var names []string
 		err := d.cluster.Transaction(func(tx *db.ClusterTx) error {
 			var err error
-			names, err = tx.ContainerNames(project)
+			names, err = tx.ContainerNames(project.Name)
 			return err
 		})
 		if err != nil {

@@ -1061,8 +1061,15 @@ func containersLessThanLimit(d *Daemon, project string) (bool, error) {
 		logger.Errorf("Failed to grab container names for current project")
 	}
 	numberOfContainers := uint64(len(names))
+	var projectContainerLimit string
 
-	projectContainerLimit, err := ProjectGetContainerLimit(project)
+	err = d.cluster.Transaction(func(tx *db.ClusterTx) error {
+		projectContainerLimit, err = tx.ProjectGetContainerLimit(project)
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
 
 	if err != nil {
 		logger.Errorf("Failed to grab container limit")
