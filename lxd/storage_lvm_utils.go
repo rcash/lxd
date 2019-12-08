@@ -852,7 +852,6 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 	var output string
 	var err error
 
-	logger.Infof("STRIPESIZE AT BEGINNING OF LVCREATE: %s", stripeSize)
 	// Round the size to closest 512 bytes
 	lvSizeInt, err := units.ParseByteSizeString(lvSize)
 	if err != nil {
@@ -893,7 +892,6 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 		}
 	}
 	if err != nil {
-		logger.Errorf("Could not create LV \"%s\": %v", lvmPoolVolumeName, err)
 		return fmt.Errorf("Could not create thin LV named %s: %v", lvmPoolVolumeName, err)
 	}
 
@@ -901,7 +899,6 @@ func lvmCreateLv(projectName, vgName string, thinPoolName string, lvName string,
 
 	output, err = driver.MakeFSType(fsPath, lvFsType, nil)
 	if err != nil {
-		logger.Errorf("Filesystem creation failed: %v (%s)", err, output)
 		return fmt.Errorf("Error making filesystem on image LV: %v (%s)", err, output)
 	}
 
@@ -1173,8 +1170,6 @@ func (s *storageLvm) copyVolumeThinpool(source string, target string, readOnly b
 
 func getLVCreateSize(input string) (string, error) {
 	suffixLen := 0
-
-	logger.Infof("INPUT: %s", input)
 
 	for i, chr := range []byte(input) {
 		_, err := strconv.Atoi(string([]byte{chr}))
