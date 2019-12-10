@@ -7,6 +7,7 @@ import (
 	"github.com/lxc/lxd/shared/logger"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -209,6 +210,7 @@ func projectGet(d *Daemon, r *http.Request) response.Response {
 		project.Config["features.images"],
 		project.Config["features.profiles"],
 		project.Config["limits.containers"],
+		project.Config["limits.cpu"],
 	}
 
 	return response.SyncResponseETag(true, project, etag)
@@ -239,6 +241,7 @@ func projectPut(d *Daemon, r *http.Request) response.Response {
 		project.Config["features.images"],
 		project.Config["features.profiles"],
 		project.Config["limits.containers"],
+		project.Config["limits.cpu"],
 	}
 	err = util.EtagCheck(r, etag)
 	if err != nil {
@@ -281,6 +284,7 @@ func projectPatch(d *Daemon, r *http.Request) response.Response {
 		project.Config["features.images"],
 		project.Config["features.profiles"],
 		project.Config["limits.containers"],
+		project.Config["limits.cpu"],
 	}
 	err = util.EtagCheck(r, etag)
 	if err != nil {
@@ -326,6 +330,11 @@ func projectPatch(d *Daemon, r *http.Request) response.Response {
 		req.Config["limits.containers"] = project.Config["limits.containers"]
 	}
 
+	_, err = reqRaw.GetString("limits.cpu")
+	if err != nil {
+		req.Config["limits.cpu"] = project.Config["limits.cpu"]
+	}
+
 	return projectChange(d, project, req)
 }
 // Common logic between PUT and PATCH.
@@ -333,7 +342,9 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 	// Flag indicating if any feature has changed.
 	featuresChanged := req.Config["features.images"] != project.Config["features.images"] || req.Config["features.profiles"] != project.Config["features.profiles"]
 	// Flag indicating if any limit has changed.
-	limitsChanged := req.Config["limits.containers"] != project.Config["limits.containers"]
+	containerLimitsChanged := req.Config["limits.containers"] != project.Config["limits.containers"]
+	cpuLimitsChanged := req.Config["limits.cpu"] != project.Config["limits.cpu"]
+	limitsChanged := containerLimitsChanged || cpuLimitsChanged
 
 	// Sanity checks
 	if project.Name == "default" && featuresChanged {
@@ -354,7 +365,7 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 		return response.BadRequest(err)
 	}
 
-	if limitsChanged {
+	if containerLimitsChanged {
 		var names []string
 		err := d.cluster.Transaction(func(tx *db.ClusterTx) error {
 			var err error
@@ -372,12 +383,15 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 			if err != nil {
 				return response.SmartError(err)
 			}
-			logger.Debugf("PROJECTCHANGE NUMBER OF CONTAINERS: %d	REQ CONTAINER LIMIT: %d", numberOfContainers, requestedContainerLimit)
 			if requestedContainerLimit < numberOfContainers {
 				return response.BadRequest(fmt.Errorf("You can't change the project container limit to less than" +
 					" the currennt number of containers"))
 			}
 		}
+	}
+
+	if cpuLimitsChanged {
+		//TODO-do some stuff here later?!
 	}
 
 	// Update the database entry
@@ -537,6 +551,29 @@ var projectConfigKeys = map[string]func(value string) error{
 	"features.profiles": shared.IsBool,
 	"features.images":   shared.IsBool,
 	"limits.containers": shared.IsAny,
+	"limits.cpu": func(value string) error {
+		if value == "" {
+			return nil
+		}
+
+		// Validate the character set
+		match, _ := regexp.MatchString("^[-,0-9]*$", value)
+		if !match {
+			return fmt.Errorf("Invalid CPU limit syntax")
+		}
+
+		// Validate first character
+		if strings.HasPrefix(value, "-") || strings.HasPrefix(value, ",") {
+			return fmt.Errorf("CPU limit can't start with a separator")
+		}
+
+		// Validate last character
+		if strings.HasSuffix(value, "-") || strings.HasSuffix(value, ",") {
+			return fmt.Errorf("CPU limit can't end with a separator")
+		}
+
+		return nil
+	},
 }
 
 func projectValidateConfig(config map[string]string) error {
