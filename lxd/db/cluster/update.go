@@ -755,6 +755,7 @@ INSERT INTO projects (name, description) VALUES ('default', 'Default LXD project
 INSERT INTO projects_config (project_id, key, value) VALUES (1, 'features.images', 'true');
 INSERT INTO projects_config (project_id, key, value) VALUES (1, 'features.profiles', 'true');
 INSERT INTO projects_config (project_id, key, value) VALUES (1, 'limits.containers', '');
+INSERT INTO projects_cinfig (project_id, key, value) VALUES (1, 'limits.cpu', '');
 
 -- Add a project_id column to all tables that need to be project-scoped.
 -- The column is added without the FOREIGN KEY constraint
