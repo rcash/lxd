@@ -392,8 +392,25 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 	}
 
 	if cpuLimitsChanged {
-		err := instance.ValidConfig(d.os, req.Config, true, false)
-		if err != nil {
+		v := req.Config["limits.cpu"]
+
+		if v == "" {
+			return nil
+		}
+
+		// Validate the character set
+		match, _ := regexp.MatchString("^[-,0-9]*$", v)
+		if !match {
+			return response.SmartError(err)
+		}
+
+		// Validate first character
+		if strings.HasPrefix(v, "-") || strings.HasPrefix(v, ",") {
+			return response.SmartError(err)
+		}
+
+		// Validate last character
+		if strings.HasSuffix(v, "-") || strings.HasSuffix(v, ",") {
 			return response.SmartError(err)
 		}
 	}
