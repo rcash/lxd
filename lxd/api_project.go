@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/lxc/lxd/lxd/instance"
 	"github.com/lxc/lxd/shared/logger"
 	"io/ioutil"
 	"net/http"
@@ -391,7 +392,10 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 	}
 
 	if cpuLimitsChanged {
-		//TODO-do some stuff here later?!
+		err := instance.ValidConfig(d.os, req.Config, true, false)
+		if err != nil {
+			return response.SmartError(err)
+		}
 	}
 
 	// Update the database entry
@@ -422,6 +426,20 @@ func projectChange(d *Daemon, project *api.Project, req api.ProjectPut) response
 
 	if err != nil {
 		return response.SmartError(err)
+	}
+
+	if cpuLimitsChanged {
+		containers, err := getProjectContainersInfo(d.cluster, project.Name)
+		if err != nil {
+			return response.SmartError(err)
+		}
+		failures := map[string]error{}
+		for _, args := range containers {
+			err := doProjectUpdateContainer(d, project, req, args)
+			if err != nil {
+				failures[args.Name] = err
+			}
+		}
 	}
 
 	return response.EmptySyncResponse
