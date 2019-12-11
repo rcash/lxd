@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/lxc/lxd/lxd/instance"
 	"github.com/lxc/lxd/shared/logger"
 	"io/ioutil"
 	"net/http"
