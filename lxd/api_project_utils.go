@@ -33,10 +33,11 @@ func getProjectContainersInfo(cluster *db.Cluster, project string) ([]db.Instanc
 	// grab all containers given th project
 
 	var names []string
-	var error error
-	err := cluster.Transaction(func (tx *db.ClusterTx) error {
-		names, error = tx.ContainerNames(project)
-		return nil
+	var err error
+	err = cluster.Transaction(func (tx *db.ClusterTx) error {
+		var err error
+		names, err = tx.ContainerNames(project)
+		return err
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to query containers with project '%s'", project)
@@ -44,7 +45,7 @@ func getProjectContainersInfo(cluster *db.Cluster, project string) ([]db.Instanc
 
 	containers := []db.InstanceArgs{}
 	err = cluster.Transaction(func(tx *db.ClusterTx) error {
-		for ctName := range names {
+		for _, ctName := range names {
 				container, err := tx.InstanceGet(project, ctName)
 				if err != nil {
 					return err
